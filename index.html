@@ -118,7 +118,7 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#app-for-data-exploration" id="toc-app-for-data-exploration" class="nav-link active" data-scroll-target="#app-for-data-exploration">App for data exploration</a></li>
+  <li><a href="#app-for-embedded-somitoid-data-exploration" id="toc-app-for-embedded-somitoid-data-exploration" class="nav-link active" data-scroll-target="#app-for-embedded-somitoid-data-exploration">App for embedded somitoid data exploration</a></li>
   </ul>
 </nav>
     </div>
@@ -150,8 +150,8 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="app-for-data-exploration" class="level2">
-<h2 class="anchored" data-anchor-id="app-for-data-exploration">App for data exploration</h2>
+<section id="app-for-embedded-somitoid-data-exploration" class="level2">
+<h2 class="anchored" data-anchor-id="app-for-embedded-somitoid-data-exploration">App for embedded somitoid data exploration</h2>
 <div id="fig-dataexplore" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dataexplore-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -181,11 +181,11 @@ title_str=['time_point',
                         'amplitude', 
                       'signal_peaks',
                       'signal_troughs',
-                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','kymo_slope']                     
-selectedn_dict_fudge={'n1': 1.0, 'n2': 2.0,'n4': 4.0, 'n5': 5.0,'n6': 6.0,'n7':7.0}
+                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power']                     
+selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0}
 selectedcell_type_fudge={'D5': 'D5', 'E5': 'E5','Hes7': 'Hes7'}
 cell_type_colour_dict={'D5':'m', 'E5':'r','Hes7':'b'}
-expn_markerdict={'n1':'x','n2':'o','n4': '+','n5': '^','n6':'.','n7':'&gt;'}
+expn_markerdict={'n1':'x','n2':'o','n3': '+'}
 
 
 app_ui = ui.page_fluid(
@@ -208,23 +208,19 @@ app_ui = ui.page_fluid(
         {
             "n1": ui.span("n=1"+expn_markerdict['n1'], style="color: #111112;"),
             "n2": ui.span("n=2"+expn_markerdict['n2'], style="color: #111112;"),
-            "n4": ui.span("n=4"+expn_markerdict['n4'], style="color: #111112;"),
-            "n5": ui.span("n=5"+expn_markerdict['n5'], style="color: #111112;"),
-            "n6": ui.span("n=6"+expn_markerdict['n6'], style="color: #111112;"),
-            "n7": ui.span("n=7"+expn_markerdict['n7'], style="color: #111112;"),
-
+            "n3": ui.span("n=3"+expn_markerdict['n3'], style="color: #111112;"),
+           
 
         },
-        selected=["n1","n2","n4","n5","n6","n7"]
+        selected=["n1","n2","n3"]
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
     ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
     ui.input_slider(id="period_max",label="Max period filter",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Som initial length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
-    ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=17.0,value=[0.0,17.0],step=0.1),            
+    ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=25.0,value=[0.0,25.0],step=0.1),            
     ui.input_slider(id="amp_min",label="Amp min",min=0.0,max=100.0,value=20,step=0.05),     
-    ui.input_slider(id="power_min",label="Power min",min=0.0,max=3.0,value=0.135,step=0.01), 
-    ui.input_slider(id="kymo_slope",label="kymo_slope",min=-3.0,max=45.0,value=[0.0,32.0],step=1),  
+    ui.input_slider(id="power_min",label="Power min",min=0.0,max=3.0,value=0.135,step=0.01),  
     ui.input_file(id='input_file',label='Input file'),
             ),
         ui.panel_main(ui.output_plot("plot"),),
@@ -267,7 +263,7 @@ file[0]["datapath"]
                   'signal_troughs',
                   'period',
                   'time_increasing_fl',
-                  'time_decreasing_fl','power','kymo_slope']               
+                  'time_decreasing_fl','power']               
 
     period_min=input.period_max()[0]
     period_max=input.period_max()[1]
@@ -276,8 +272,6 @@ file[0]["datapath"]
     t_min=input.t_max()[0]
     t_max=input.t_max()[1]
 
-    kymo_slope_min=input.kymo_slope()[0]
-    kymo_slope_max=input.kymo_slope()[1]
     power_min=input.power_min()
     amp_min=input.amp_min()
     selectedcelltype=input.selectedcelltype()
@@ -293,7 +287,7 @@ file[0]["datapath"]
 
     
     # Select subset of data based on filter criteria
-    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['kymo_slope']&gt;=kymo_slope_min)&amp;(locdf['kymo_slope']&lt;=kymo_slope_max)]
+    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)]
 
 
     if input.raw_or_z()=='Z score':
@@ -482,8 +476,8 @@ app = App(app_ui, server)
 
 
 ## file: SamplePointsMasterFrame.csv
-,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power,kymo_slope
-0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352,5.408163265306124
+,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power
+0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352
 
 </code></pre>
 </div>
