@@ -240,7 +240,7 @@ def server(input, output, session):
       return pd.read_csv(  # pyright: ignore[reportUnknownMemberType]
 file[0]["datapath"]
       )
-    fig, ax = plt.subplots(4,1,figsize=(32,10))
+    fig, ax = plt.subplots(5,1,figsize=(40,10))
     #ax.set_ylim([-2, 2])
     # Filter fata
     global df
@@ -284,6 +284,11 @@ file[0]["datapath"]
     for i1 in range(len(selectedcelltype)):
       selected_c_items.append(selectedcell_type_fudge[selectedcelltype[i1]])  
     
+
+    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)]
+
+    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)]
+
 
     
     # Select subset of data based on filter criteria
@@ -453,22 +458,35 @@ file[0]["datapath"]
     ax[2].set_xticklabels(selectedcelltype)
   
     
+
+
     #E5_locdf.drop(columns=E5_locdf.columns[0], axis=1, inplace=True)
     #locdf.drop(columns=['n_experiment','cell_type'], axis=1, inplace=True)
-    locdf.rename(columns=lambda x: x[:6], inplace=True) #this will truncate the column name. Then print the dataframe
-  
+    locdfE5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
+    locdfD5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
 
-    corr_mat=locdf.corr(numeric_only=True,method='spearman')
-    mask = np.triu(np.ones_like(corr_mat)) 
+
+    corr_matE5=locdfE5.corr(numeric_only=True,method='spearman')
+    corr_matD5=locdfD5.corr(numeric_only=True,method='spearman')
+
+    mask = np.triu(np.ones_like(corr_matD5)) 
 
     
-    chart=sns.heatmap(corr_mat, annot=True,annot_kws={'size':6.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
-    ax[3].set_title('Pearson correlation')
+    chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
+    ax[3].set_title('E5 correlation')
     ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
 
     ax[3].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
+
+    chart=sns.heatmap(corr_matD5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[4],cbar=False,yticklabels=True,mask=mask)
+    ax[4].set_title('D5 correlation')
+    ax[4].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
+    
+    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
+
+    ax[4].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
     
       
 
