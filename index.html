@@ -182,10 +182,10 @@ title_str=['time_point',
                       'signal_peaks',
                       'signal_troughs',
                       'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power']                     
-selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0}
+selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0}
 selectedcell_type_fudge={'D5': 'D5', 'E5': 'E5','Hes7': 'Hes7'}
 cell_type_colour_dict={'D5':'m', 'E5':'r','Hes7':'b'}
-expn_markerdict={'n1':'x','n2':'o','n3': '+'}
+expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*'}
 
 
 app_ui = ui.page_fluid(
@@ -209,10 +209,11 @@ app_ui = ui.page_fluid(
             "n1": ui.span("n=1"+expn_markerdict['n1'], style="color: #111112;"),
             "n2": ui.span("n=2"+expn_markerdict['n2'], style="color: #111112;"),
             "n3": ui.span("n=3"+expn_markerdict['n3'], style="color: #111112;"),
-           
+            "n4": ui.span("n=4"+expn_markerdict['n4'], style="color: #111112;"),
+          
 
         },
-        selected=["n1","n2","n3"]
+        selected=["n1","n2","n3","n4"]
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
     ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
