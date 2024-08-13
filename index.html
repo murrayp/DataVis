@@ -219,7 +219,7 @@ app_ui = ui.page_fluid(
     ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
     ui.input_slider(id="period_max",label="Max period filter",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Som initial length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
-    ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=25.0,value=[0.0,25.0],step=0.1),            
+    ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),            
     ui.input_slider(id="amp_min",label="Amp min",min=0.0,max=100.0,value=0.0,step=0.05),     
     ui.input_slider(id="power_min",label="Power min",min=0.0,max=3.0,value=0.0,step=0.01),  
     ui.input_file(id='input_file',label='Input file'),
