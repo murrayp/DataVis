@@ -221,7 +221,7 @@ app_ui = ui.page_fluid(
     ui.input_slider(id="period_max",label="Max period filter",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Som initial length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
     ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),            
-    ui.input_slider(id="amp_min",label="Amp min",min=0.0,max=100.0,value=0.0,step=0.05),     
+    ui.input_slider(id="amp_min",label="Amplitude",min=0.0,max=500.0,value=[0.0,500.0],step=0.05),     
     ui.input_slider(id="power_min",label="Power min",min=0.0,max=3.0,value=0.0,step=0.01),  
     ui.input_file(id='input_file',label='Input file'),
             ),
@@ -275,7 +275,9 @@ file[0]["datapath"]
     t_max=input.t_max()[1]
 
     power_min=input.power_min()
-    amp_min=input.amp_min()
+    amp_min=input.amp_min()[0]
+    amp_max=input.amp_min()[1]
+
     selectedcelltype=input.selectedcelltype()
     selectedn=input.selectedn()
     selectedregion=input.region()
@@ -288,14 +290,14 @@ file[0]["datapath"]
       selected_c_items.append(selectedcell_type_fudge[selectedcelltype[i1]])  
     
 
-    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['region'].isin([selectedregion]))]
+    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
 
-    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['region'].isin([selectedregion]))]
+    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
 
 
     
     # Select subset of data based on filter criteria
-    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['region'].isin([selectedregion]))]
+    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
 
 
     if input.raw_or_z()=='Z score':
