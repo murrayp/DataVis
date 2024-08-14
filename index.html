@@ -183,9 +183,11 @@ title_str=['time_point',
                       'signal_troughs',
                       'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','region']                     
 selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0}
-selectedcell_type_fudge={'D5': 'D5', 'E5': 'E5','Hes7': 'Hes7'}
-cell_type_colour_dict={'D5':'m', 'E5':'r','Hes7':'b'}
+selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 'E5 A'}
+cell_type_colour_dict={'D5 P':'m', 'E5 P':'r','D5 A':'k','E5 A':'b'}
 expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*'}
+
+#region=['All','Post PSM','Ant PSM']
 
 
 app_ui = ui.page_fluid(
@@ -196,11 +198,11 @@ app_ui = ui.page_fluid(
         "selectedcelltype",
         " Cell type(s):",
         {
-            "D5": ui.span("D5", style="color: #121111;"),
-            "E5": ui.span("E5", style="color: #ff0000;"),
-            "Hes7": ui.span("Hes7", style="color: #0000FF;"),
-        },
-        selected=["D5","E5"]
+            "D5 A": ui.span("D5 A", style="color: #000000;"),
+            "E5 A": ui.span("E5 A", style="color: #0000FF;"),
+            "D5 P": ui.span("D5 P", style="color: #FF00FF;"),
+            "E5 P": ui.span("E5 P", style="color: #FF0000;"),        },
+        selected=["D5 A","E5 A"]
     ),
     ui.input_checkbox_group(
         "selectedn",
@@ -217,7 +219,6 @@ app_ui = ui.page_fluid(
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
     ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
-    ui.input_radio_buttons(id='region',label='Region',choices=['All','Post PSM','Ant PSM'],selected='Ant PSM'),
     ui.input_slider(id="period_max",label="Max period filter",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Som initial length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
     ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),            
@@ -280,7 +281,7 @@ file[0]["datapath"]
 
     selectedcelltype=input.selectedcelltype()
     selectedn=input.selectedn()
-    selectedregion=input.region()
+    #selectedregion=input.region()
     selected_n_items=[]
     for i1 in range(len(selectedn)):
       selected_n_items.append(selectedn_dict_fudge[selectedn[i1]])
@@ -290,14 +291,14 @@ file[0]["datapath"]
       selected_c_items.append(selectedcell_type_fudge[selectedcelltype[i1]])  
     
 
-    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
+    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5 A']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]
 
-    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
+    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5 A']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]
 
 
     
     # Select subset of data based on filter criteria
-    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)&amp;(locdf['region'].isin([selectedregion]))]
+    locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]
 
 
     if input.raw_or_z()=='Z score':
@@ -478,7 +479,7 @@ file[0]["datapath"]
 
     
     chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
-    ax[3].set_title('E5 correlation')
+    ax[3].set_title('E5 corr. Ant')
     ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
@@ -486,7 +487,7 @@ file[0]["datapath"]
     ax[3].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
 
     chart=sns.heatmap(corr_matD5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[4],cbar=False,yticklabels=True,mask=mask)
-    ax[4].set_title('D5 correlation')
+    ax[4].set_title('D5 corr. Ant')
     ax[4].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
@@ -494,7 +495,7 @@ file[0]["datapath"]
     ax[4].set_yticklabels(chart.get_xticklabels(),fontsize=4.0) 
 
     chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
-    ax[3].set_title('E5 correlation')
+    ax[3].set_title('E5 corr. Ant')
     ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
@@ -502,7 +503,7 @@ file[0]["datapath"]
     ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
 
     chart=sns.heatmap(corr_matD5-corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[5],cbar=False,yticklabels=True,mask=mask)
-    ax[5].set_title('D5-E5 correlation')
+    ax[5].set_title('D5-E5 Ant correlation')
     ax[5].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
