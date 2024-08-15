@@ -357,8 +357,11 @@ file[0]["datapath"]
       row_index=0
       for sel_c_t in selectedcelltype: # loop over cell type
         for n_sel in selectedn: # loop over n
-          for samp_id in range(14): # loop over sample id
+          sampleids=((locdf['sample_ind'].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]))
+          for samp_id in sampleids: # loop over sample id
             dixt_add={}
+            
+         
             for col in title_str_num:
               data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).median()
               if np.isnan(data_point)==False:
@@ -366,14 +369,13 @@ file[0]["datapath"]
               #else:
               #  dixt_add[col]=-100.0
 
-              dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
-              dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
-              dixt_add['sample_ind']=samp_id
+            dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
+            dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
+            dixt_add['sample_ind']=samp_id
             
             # Add new entry to spreadsheet
             new_row = pd.Series(dixt_add)
             df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
-            row_index=row_index+1
       
       #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
       locdf=df_avn
