@@ -218,7 +218,7 @@ app_ui = ui.page_fluid(
         selected=["n2","n3","n4"]
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
-    ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
+    ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n','Average within somitoid'],selected='All data'),
     ui.input_slider(id="period_max",label="Period",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Somitoid length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
     ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),  
@@ -323,8 +323,11 @@ file[0]["datapath"]
     n=locdf["n_experiment"]
     sample_ind=locdf["sample_ind"]
 
-    
+    plot_traj=1
+
     if input.average_ns()=='Average within n':
+      plot_traj=0
+
       df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
       row_index=0
       for sel_c_t in selectedcelltype:
@@ -347,6 +350,33 @@ file[0]["datapath"]
       
       #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
       locdf=df_avn
+    elif input.average_ns()=='Average within somitoid':
+      plot_traj=0
+
+      df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
+      row_index=0
+      for sel_c_t in selectedcelltype: # loop over cell type
+        for n_sel in selectedn: # loop over n
+          for samp_id in range(14): # loop over sample id
+            dixt_add={}
+            for col in title_str_num:
+              data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).median()
+              if np.isnan(data_point)==False:
+                dixt_add[col]=data_point
+              #else:
+              #  dixt_add[col]=-100.0
+
+              dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
+              dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
+              dixt_add['sample_ind']=samp_id
+            
+            # Add new entry to spreadsheet
+            new_row = pd.Series(dixt_add)
+            df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
+            row_index=row_index+1
+      
+      #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
+      locdf=df_avn
 
     
     exp_count=np.nan*np.ones((len(selectedn),len(selectedcelltype)))
@@ -363,7 +393,6 @@ file[0]["datapath"]
       
         ax[0].scatter(x_select,y_select,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
 
-        plot_traj=1
         if plot_traj==1:
           for j1 in range(16):
             data_n_c_traj=locdf.loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==j1)]
