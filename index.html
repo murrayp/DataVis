@@ -218,7 +218,7 @@ app_ui = ui.page_fluid(
         selected=["n2","n3","n4"]
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
-    ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n','Average within somitoid'],selected='All data'),
+    ui.input_radio_buttons(id='average_ns',label="Averaging datapoints",choices=['All data','Average within n','Average within somitoid'],selected='All data'),
     ui.input_slider(id="period_max",label="Period",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Somitoid length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
     ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),  
@@ -419,7 +419,9 @@ file[0]["datapath"]
     for i,sel_c_t in enumerate(selectedcelltype):
       # pull data from data frame for given cell type
       x_vals_i=(locdf[input.x()].loc[(locdf['n_experiment'].isin(selected_Exp))&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]).to_numpy(dtype=float)
-
+      
+      #data_n_c=locdf.loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]
+        
       normality_p_val=stats.shapiro(x_vals_i)
       
       normality_p_val=round(normality_p_val.pvalue,4)
