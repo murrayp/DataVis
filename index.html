@@ -182,12 +182,10 @@ title_str=['time_point',
                       'signal_peaks',
                       'signal_troughs',
                       'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','region','caW_seg_l']                     
-selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0,'nn1': 1.0,'nn2': 2.0, 'nn5': 5.0,'nn6': 6.0,'nn7': 7.0}
+selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0,'nn1': 1.0,'nn2': 2.0, 'nn5': 5.0,'nn6': 6.0,'nn7': 7.0,}
 selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 'E5 A'}
 cell_type_colour_dict={'D5 P':'m', 'E5 P':'r','D5 A':'k','E5 A':'b'}
 expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*','nn1': 'x','nn2': 'o','nn5': 'o','nn6':'+','nn7':'*'}
-
-#region=['All','Post PSM','Ant PSM']
 
 
 app_ui = ui.page_fluid(
@@ -200,8 +198,8 @@ app_ui = ui.page_fluid(
         {
             "D5 A": ui.span("D5 A", style="color: #000000;"),
             "E5 A": ui.span("E5 A", style="color: #0000FF;"),
-            "D5 P": ui.span("D5 P", style="color: #FF00FF;"),
-            "E5 P": ui.span("E5 P", style="color: #FF0000;"),        },
+            "D5 P": ui.span("D5 All", style="color: #FF00FF;"),
+            "E5 P": ui.span("E5 All", style="color: #FF0000;"),        },
         selected=["D5 A","E5 A"]
     ),
     ui.input_checkbox_group(
@@ -214,12 +212,9 @@ app_ui = ui.page_fluid(
             "n4": ui.span("Emb. n=4"+expn_markerdict['n4'], style="color: #111112;"),
             "nn1": ui.span("NEmb. n=1"+expn_markerdict['n1'], style="color: #111112;"),
             "nn2": ui.span("NEmb. n=2"+expn_markerdict['n1'], style="color: #111112;"),
-
             "nn5": ui.span("NEmb. n=5"+expn_markerdict['n2'], style="color: #111112;"),
             "nn6": ui.span("NEmb. n=6"+expn_markerdict['n3'], style="color: #111112;"),
-            "nn7": ui.span("NEmb. n=7"+expn_markerdict['n4'], style="color: #111112;"),
-          
-
+            "nn7": ui.span("NEmb. n=7"+expn_markerdict['n4'], style="color: #111112;"),  
         },
         selected=["n2","n3","n4","nn1","nn2","nn5","nn6","nn7"]
     ),
