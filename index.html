@@ -168,6 +168,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from scipy import stats
 import seaborn as sns
+from scipy.stats import bootstrap
+
 
 
 my_file = Path(__file__).parent / "SamplePointsMasterFrame.csv"
@@ -187,6 +189,11 @@ selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 
 cell_type_colour_dict={'D5 P':'m', 'E5 P':'r','D5 A':'k','E5 A':'b'}
 expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*','nn1': 'x','nn2': 'o','nn5': 'o','nn6':'+','nn7':'*'}
 
+rng = np.random.default_rng()
+def my_statistic(sample1, sample2, axis=-1):
+    mean1 = np.mean(sample1, axis=axis)
+    mean2 = np.mean(sample2, axis=axis)
+    return mean1 - mean2
 
 app_ui = ui.page_fluid(
     ui.layout_sidebar(
@@ -220,6 +227,7 @@ app_ui = ui.page_fluid(
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
     ui.input_radio_buttons(id='average_ns',label="Averaging datapoints",choices=['All data','Average within n','Average within somitoid'],selected='All data'),
+    ui.input_radio_buttons(id='stests',label="Statistical tests",choices=['Normal','Bootstrap'],selected='Bootstrap'),
     ui.input_slider(id="period_max",label="Period",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
     ui.input_slider(id="som_init_len",label="Somitoid length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
     ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),  
@@ -282,6 +290,9 @@ file[0]["datapath"]
     power_min=input.power_min()
     amp_min=input.amp_min()[0]
     amp_max=input.amp_min()[1]
+
+    usebootstrap=False
+    stat_test=input.stests()
 
     selectedcelltype=input.selectedcelltype()
     selectedn=input.selectedn()
@@ -415,8 +426,9 @@ file[0]["datapath"]
     
     
     cell_type_tick_mark=np.array(range(len(selectedcelltype)))
-    pvalues_mat=np.nan*np.ones((len(selectedcelltype),len(selectedcelltype)))
     
+    pvalues_mat=np.empty((len(selectedcelltype),len(selectedcelltype)),dtype='&lt;U100')
+
     x_vals=[]
     selected_Exp=[selectedn_dict_fudge[k] for k in selectedn]
     for i,sel_c_t in enumerate(selectedcelltype):
@@ -431,14 +443,20 @@ file[0]["datapath"]
       #normality_p_val=0.01
       for j,sel_c_t_j in enumerate(selectedcelltype):
         x_vals_j=(locdf[input.x()].loc[(locdf['n_experiment'].isin(selected_Exp))&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t_j])]).to_numpy(dtype=float)
-
-        if i&gt;j:
-          p_value=stats.mannwhitneyu(x_vals_i, x_vals_j, alternative="two-sided").pvalue
-          #p_value=0.005
-          p_value=round(p_value,4)
-          pvalues_mat[i,j]=p_value
-        elif i==j:
-          pvalues_mat[i,j]=normality_p_val
+        if stat_test=='Normal':
+          if i&gt;j:
+            p_value=stats.mannwhitneyu(x_vals_i, x_vals_j, alternative="two-sided").pvalue
+            #p_value=0.005
+            p_value=round(p_value,4)
+            pvalues_mat[i,j]=p_value
+          elif i==j:
+            pvalues_mat[i,j]=normality_p_val
+        elif stat_test=='Bootstrap':
+          data = (x_vals_i, x_vals_j)
+          res = bootstrap(data, my_statistic, method='basic', random_state=rng)
+          ci_l=round(res.confidence_interval[0],2)
+          ci_u=round(res.confidence_interval[1],2) #,res.confidence_interval[1]]
+          pvalues_mat[i,j] = '['+ str(ci_l)+', ' + str(ci_u)+']'        
       x_vals.append(x_vals_i)
     
     color = [cell_type_colour_dict[j] for j in selectedcelltype] #["green", "White", "Red", "Yellow", "Green", "Grey"] 
@@ -460,6 +478,9 @@ file[0]["datapath"]
     ax[1].set_xticks(cell_type_tick_mark)
     ax[1].set_xticklabels(selectedcelltype)
     
+
+    pvalues_mat=np.empty((len(selectedcelltype),len(selectedcelltype)),dtype='&lt;U100')
+    
     y_vals=[]
     for i,sel_c_t in enumerate(selectedcelltype):
       # pull data from data frame for given cell type
@@ -472,13 +493,22 @@ file[0]["datapath"]
       for j,sel_c_t_j in enumerate(selectedcelltype):
         y_vals_j=(locdf[input.y()].loc[(locdf['n_experiment'].isin(selected_Exp))&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t_j])]).to_numpy(dtype=float)
 
-        if i&gt;j:
-          p_value=stats.mannwhitneyu(y_vals_i, y_vals_j, alternative="two-sided").pvalue
-          #p_value=0.005
-          p_value=round(p_value,4)
-          pvalues_mat[i,j]=p_value
-        elif i==j:
-          pvalues_mat[i,j]=normality_p_val
+        if stat_test=='Normal':
+          if i&gt;j:
+            p_value=stats.mannwhitneyu(y_vals_i, y_vals_j, alternative="two-sided").pvalue
+            #p_value=0.005
+            p_value=round(p_value,4)
+            pvalues_mat[i,j]=str(p_value)
+          elif i==j:
+            pvalues_mat[i,j]=str(normality_p_val)
+        
+        elif stat_test=='Bootstrap':
+          data = (y_vals_i, y_vals_j)
+          res = bootstrap(data, my_statistic, method='basic', random_state=rng)
+          ci_l=round(res.confidence_interval[0],2)
+          ci_u=round(res.confidence_interval[1],2) #,res.confidence_interval[1]]
+          pvalues_mat[i,j] = '['+ str(ci_l)+', ' + str(ci_u)+']'
+
       y_vals.append(y_vals_i)
     
     color = [cell_type_colour_dict[j] for j in selectedcelltype] #["green", "White", "Red", "Yellow", "Green", "Grey"] 
@@ -488,7 +518,11 @@ file[0]["datapath"]
     #linecolor=
     col_labels = selectedcelltype
     row_labels = selectedcelltype
-    #plotting
+    
+
+  
+
+
     ax[2].table(cellText=pvalues_mat,
                 colWidths=[0.1] * len(x_vals),
                 rowLabels=row_labels,
