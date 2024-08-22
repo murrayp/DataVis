@@ -468,7 +468,7 @@ file[0]["datapath"]
     row_labels = selectedcelltype
     #plotting
     ax[1].table(cellText=pvalues_mat,
-                colWidths=[0.1] * len(x_vals),
+                colWidths=[0.15] * len(x_vals),
                 rowLabels=row_labels,
                 colLabels=col_labels,
                 loc='upper right')
@@ -523,8 +523,8 @@ file[0]["datapath"]
   
 
 
-    ax[2].table(cellText=pvalues_mat,
-                colWidths=[0.1] * len(x_vals),
+    table_obj=ax[2].table(cellText=pvalues_mat,
+                colWidths=[0.15] * len(x_vals),
                 rowLabels=row_labels,
                 colLabels=col_labels,
                 loc='upper right')
