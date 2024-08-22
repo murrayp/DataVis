@@ -1,0 +1,68 @@
+  
+  
+```{python}
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import matplotlib.pyplot as plt
+from scipy import stats
+import seaborn as sns
+from scipy.stats import bootstrap
+
+
+#plotting
+fig,ax=plt.subplots()
+
+pvalues_mata=np.nan*np.ones((2,2))
+
+print(pvalues_mata)
+
+pvalues_mata[0,0]=5
+pvalues_mata[1,0]=6
+pvalues_mata[0,1]=7
+pvalues_mata[1,1]=8
+
+print(pvalues_mata)
+
+pvalues_matb=np.nan*np.ones((2,2))
+print(pvalues_matb)
+
+pvalues_matb[0,0]=5
+pvalues_matb[1,0]=6
+
+
+
+pvalues_matb[0,1]=7
+pvalues_matb[1,1]=8
+
+print(pvalues_matb)
+
+pvalues_mata=np.array2string(pvalues_mata, precision=2, separator=',',suppress_small=True)
+pvalues_matb=np.array2string(pvalues_matb, precision=2, separator=',',suppress_small=True)
+
+
+print('Hmm')
+print(pvalues_mata)
+
+print('Bla')
+
+print(pvalues_matb)
+
+print(pvalues_mata+pvalues_matb)
+
+
+pvalues_mat=np.empty((2,2),dtype='<U100')
+
+for i in range(2):
+    for j in range(2):
+        string_mat='asdf' #str(i)
+        pvalues_mat[i,j] = '['+ str(i)+', ' + str(j)+']'
+print('Final')
+
+print(pvalues_mat)
+
+ax.table(cellText=pvalues_mat,
+            colWidths=[0.1] * 2,
+            loc='upper right')
+plt.show()
+```

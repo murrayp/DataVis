@@ -7,7 +7,7 @@ filters:
 
 
 
-## App for data exploration (will show in meeting)
+## App for  somitoid data exploration 
 
 ::: {#fig-dataexplore}
 ```{shinylive-python}
@@ -24,6 +24,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from scipy import stats
 import seaborn as sns
+from scipy.stats import bootstrap
+
 
 
 my_file = Path(__file__).parent / "SamplePointsMasterFrame.csv"
@@ -37,12 +39,17 @@ title_str=['time_point',
                         'amplitude', 
                       'signal_peaks',
                       'signal_troughs',
-                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','kymo_slope']                     
-selectedn_dict_fudge={'n1': 1.0, 'n2': 2.0,'n4': 4.0, 'n5': 5.0,'n6': 6.0,'n7':7.0}
-selectedcell_type_fudge={'D5': 'D5', 'E5': 'E5','Hes7': 'Hes7'}
-cell_type_colour_dict={'D5':'m', 'E5':'r','Hes7':'b'}
-expn_markerdict={'n1':'x','n2':'o','n4': '+','n5': '^','n6':'.','n7':'>'}
+                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','region','caW_seg_l']                     
+selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0,'nn1': 1.0,'nn2': 2.0, 'nn5': 5.0,'nn6': 6.0,'nn7': 7.0,}
+selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 'E5 A'}
+cell_type_colour_dict={'D5 P':'m', 'E5 P':'r','D5 A':'k','E5 A':'b'}
+expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*','nn1': 'x','nn2': 'o','nn5': 'o','nn6':'+','nn7':'*'}
 
+rng = np.random.default_rng()
+def my_statistic(sample1, sample2, axis=-1):
+    mean1 = np.mean(sample1, axis=axis)
+    mean2 = np.mean(sample2, axis=axis)
+    return mean1 - mean2
 
 app_ui = ui.page_fluid(
     ui.layout_sidebar(
@@ -52,35 +59,37 @@ app_ui = ui.page_fluid(
         "selectedcelltype",
         " Cell type(s):",
         {
-            "D5": ui.span("D5", style="color: #121111;"),
-            "E5": ui.span("E5", style="color: #ff0000;"),
-            "Hes7": ui.span("Hes7", style="color: #0000FF;"),
-        },
-        selected=["D5","E5"]
+            "D5 A": ui.span("D5 A", style="color: #000000;"),
+            "E5 A": ui.span("E5 A", style="color: #0000FF;"),
+            "D5 P": ui.span("D5 All", style="color: #FF00FF;"),
+            "E5 P": ui.span("E5 All", style="color: #FF0000;"),        },
+        selected=["D5 A","E5 A"]
     ),
     ui.input_checkbox_group(
         "selectedn",
         " n(s):",
         {
-            "n1": ui.span("n=1"+expn_markerdict['n1'], style="color: #111112;"),
-            "n2": ui.span("n=2"+expn_markerdict['n2'], style="color: #111112;"),
-            "n4": ui.span("n=4"+expn_markerdict['n4'], style="color: #111112;"),
-            "n5": ui.span("n=5"+expn_markerdict['n5'], style="color: #111112;"),
-            "n6": ui.span("n=6"+expn_markerdict['n6'], style="color: #111112;"),
-            "n7": ui.span("n=7"+expn_markerdict['n7'], style="color: #111112;"),
-
-
+            "n1": ui.span("Emb. n=1"+expn_markerdict['n1'], style="color: #111112;"),
+            "n2": ui.span("Emb. n=2"+expn_markerdict['n2'], style="color: #111112;"),
+            "n3": ui.span("Emb. n=3"+expn_markerdict['n3'], style="color: #111112;"),
+            "n4": ui.span("Emb. n=4"+expn_markerdict['n4'], style="color: #111112;"),
+            "nn1": ui.span("NEmb. n=1"+expn_markerdict['n1'], style="color: #111112;"),
+            "nn2": ui.span("NEmb. n=2"+expn_markerdict['n1'], style="color: #111112;"),
+            "nn5": ui.span("NEmb. n=5"+expn_markerdict['n2'], style="color: #111112;"),
+            "nn6": ui.span("NEmb. n=6"+expn_markerdict['n3'], style="color: #111112;"),
+            "nn7": ui.span("NEmb. n=7"+expn_markerdict['n4'], style="color: #111112;"),  
         },
-        selected=["n1","n2","n4","n5","n6","n7"]
+        selected=["n2","n3","n4","nn1","nn2","nn5","nn6","nn7"]
     ),
     ui.input_select(id="raw_or_z", label="Raw/Z score",choices=['Raw', 'Z score'],selected=["Raw"]),
-    ui.input_radio_buttons(id='average_ns',label="Average within n",choices=['All data','Average within n'],selected='All data'),
-    ui.input_slider(id="period_max",label="Max period filter",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
-    ui.input_slider(id="som_init_len",label="Som initial length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
-    ui.input_slider(id="t_max",label="Samp. time max",min=0.0,max=17.0,value=[0.0,17.0],step=0.1),            
-    ui.input_slider(id="amp_min",label="Amp min",min=0.0,max=100.0,value=20,step=0.05),     
-    ui.input_slider(id="power_min",label="Power min",min=0.0,max=3.0,value=0.135,step=0.01), 
-    ui.input_slider(id="kymo_slope",label="kymo_slope",min=-3.0,max=45.0,value=[0.0,32.0],step=1),  
+    ui.input_radio_buttons(id='average_ns',label="Averaging datapoints",choices=['All data','Average within n','Average within somitoid'],selected='All data'),
+    ui.input_radio_buttons(id='stests',label="Statistical tests",choices=['Normal','Bootstrap'],selected='Bootstrap'),
+    ui.input_slider(id="period_max",label="Period",min=3.0,max=7.0,value=[3.5,5.5],step=0.1,drag_range=True),
+    ui.input_slider(id="som_init_len",label="Somitoid length",min=100.0,max=800.0,value=[120.1,700],step=5.0),           
+    ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=25.0,value=[0.0,10.0],step=0.1),  
+    ui.input_slider(id="caw_seg",label="CAW seg size",min=-5.0,max=200.0,value=[-5.0,80.0],step=2),           
+    ui.input_slider(id="amp_min",label="Amplitude",min=0.0,max=2000.0,value=[0.0,500.0],step=0.05),     
+    ui.input_slider(id="power_min",label="Power min.",min=0.0,max=3.0,value=0.0,step=0.01),  
     ui.input_file(id='input_file',label='Input file'),
             ),
         ui.panel_main(ui.output_plot("plot"),),
@@ -100,7 +109,7 @@ def server(input, output, session):
       return pd.read_csv(  # pyright: ignore[reportUnknownMemberType]
 file[0]["datapath"]
       )
-    fig, ax = plt.subplots(4,1,figsize=(32,10))
+    fig, ax = plt.subplots(6,1,figsize=(48,10))
     #ax.set_ylim([-2, 2])
     # Filter fata
     global df
@@ -110,7 +119,7 @@ file[0]["datapath"]
       df = parsed_file()
 
 
-    locdf=df
+    locdf=df.copy()
     locdf=locdf[title_str]
 
     title_str_num=['time_point',
@@ -123,7 +132,7 @@ file[0]["datapath"]
                   'signal_troughs',
                   'period',
                   'time_increasing_fl',
-                  'time_decreasing_fl','power','kymo_slope']               
+                  'time_decreasing_fl','power','caW_seg_l']               
 
     period_min=input.period_max()[0]
     period_max=input.period_max()[1]
@@ -131,13 +140,19 @@ file[0]["datapath"]
     som_length_max=input.som_init_len()[1]
     t_min=input.t_max()[0]
     t_max=input.t_max()[1]
+    caw_seg_min=input.caw_seg()[0]
+    caw_seg_max=input.caw_seg()[1]
 
-    kymo_slope_min=input.kymo_slope()[0]
-    kymo_slope_max=input.kymo_slope()[1]
     power_min=input.power_min()
-    amp_min=input.amp_min()
+    amp_min=input.amp_min()[0]
+    amp_max=input.amp_min()[1]
+
+    usebootstrap=False
+    stat_test=input.stests()
+
     selectedcelltype=input.selectedcelltype()
     selectedn=input.selectedn()
+    #selectedregion=input.region()
     selected_n_items=[]
     for i1 in range(len(selectedn)):
       selected_n_items.append(selectedn_dict_fudge[selectedn[i1]])
@@ -147,9 +162,14 @@ file[0]["datapath"]
       selected_c_items.append(selectedcell_type_fudge[selectedcelltype[i1]])  
     
 
+    locdfE5=locdf[(locdf["period"]<period_max)&(locdf["period"]>period_min)&(locdf["som_length"]>som_length_min)&(locdf["time_point"]>=t_min)&(locdf["time_point"]<=t_max)&(locdf['n_experiment'].isin(selected_n_items))&(locdf['cell_type'].isin(['E5 A']))&(locdf['power']>power_min)&(locdf['amplitude']>amp_min)&(locdf['amplitude']<amp_max)]#&(locdf['caW_seg_l']<caw_seg_max)&(locdf['caW_seg_l']>caw_seg_min)]
+
+    locdfD5=locdf[(locdf["period"]<period_max)&(locdf["period"]>period_min)&(locdf["som_length"]>som_length_min)&(locdf["time_point"]>=t_min)&(locdf["time_point"]<=t_max)&(locdf['n_experiment'].isin(selected_n_items))&(locdf['cell_type'].isin(['D5 A']))&(locdf['power']>power_min)&(locdf['amplitude']>amp_min)&(locdf['amplitude']<amp_max)]#&(locdf['caW_seg_l']<caw_seg_max)&(locdf['caW_seg_l']>caw_seg_min)]
+
+
     
     # Select subset of data based on filter criteria
-    locdf=locdf[(locdf["period"]<period_max)&(locdf["period"]>period_min)&(locdf["som_length"]>som_length_min)&(locdf["time_point"]>=t_min)&(locdf["time_point"]<=t_max)&(locdf['n_experiment'].isin(selected_n_items))&(locdf['cell_type'].isin(selected_c_items))&(locdf['power']>power_min)&(locdf['amplitude']>amp_min)&(locdf['kymo_slope']>=kymo_slope_min)&(locdf['kymo_slope']<=kymo_slope_max)]
+    locdf=locdf[(locdf["period"]<period_max)&(locdf["period"]>period_min)&(locdf["som_length"]>som_length_min)&(locdf["time_point"]>=t_min)&(locdf["time_point"]<=t_max)&(locdf['n_experiment'].isin(selected_n_items))&(locdf['cell_type'].isin(selected_c_items))&(locdf['power']>power_min)&(locdf['amplitude']>amp_min)&(locdf['amplitude']<amp_max)]#&(locdf['caW_seg_l']<caw_seg_max)&(locdf['caW_seg_l']>caw_seg_min)]
 
 
     if input.raw_or_z()=='Z score':
@@ -171,8 +191,11 @@ file[0]["datapath"]
     n=locdf["n_experiment"]
     sample_ind=locdf["sample_ind"]
 
-    
+    plot_traj=1
+
     if input.average_ns()=='Average within n':
+      plot_traj=0
+
       df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
       row_index=0
       for sel_c_t in selectedcelltype:
@@ -195,6 +218,35 @@ file[0]["datapath"]
       
       #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
       locdf=df_avn
+    elif input.average_ns()=='Average within somitoid':
+      plot_traj=0
+
+      df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
+      row_index=0
+      for sel_c_t in selectedcelltype: # loop over cell type
+        for n_sel in selectedn: # loop over n
+          sampleids=((locdf['sample_ind'].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]))
+          for samp_id in sampleids: # loop over sample id
+            dixt_add={}
+            
+         
+            for col in title_str_num:
+              data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&(locdf['sample_ind']==samp_id)])).median()
+              if np.isnan(data_point)==False:
+                dixt_add[col]=data_point
+              #else:
+              #  dixt_add[col]=-100.0
+
+            dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
+            dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
+            dixt_add['sample_ind']=samp_id
+            
+            # Add new entry to spreadsheet
+            new_row = pd.Series(dixt_add)
+            df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
+      
+      #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
+      locdf=df_avn
 
     
     exp_count=np.nan*np.ones((len(selectedn),len(selectedcelltype)))
@@ -211,7 +263,6 @@ file[0]["datapath"]
       
         ax[0].scatter(x_select,y_select,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
 
-        plot_traj=1
         if plot_traj==1:
           for j1 in range(16):
             data_n_c_traj=locdf.loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&(locdf['sample_ind']==j1)]
@@ -231,28 +282,37 @@ file[0]["datapath"]
     
     
     cell_type_tick_mark=np.array(range(len(selectedcelltype)))
-    pvalues_mat=np.nan*np.ones((len(selectedcelltype),len(selectedcelltype)))
     
+    pvalues_mat=np.empty((len(selectedcelltype),len(selectedcelltype)),dtype='<U100')
+
     x_vals=[]
     selected_Exp=[selectedn_dict_fudge[k] for k in selectedn]
     for i,sel_c_t in enumerate(selectedcelltype):
       # pull data from data frame for given cell type
       x_vals_i=(locdf[input.x()].loc[(locdf['n_experiment'].isin(selected_Exp))&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]).to_numpy(dtype=float)
-
+      
+      #data_n_c=locdf.loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]
+        
       normality_p_val=stats.shapiro(x_vals_i)
       
       normality_p_val=round(normality_p_val.pvalue,4)
       #normality_p_val=0.01
       for j,sel_c_t_j in enumerate(selectedcelltype):
         x_vals_j=(locdf[input.x()].loc[(locdf['n_experiment'].isin(selected_Exp))&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t_j])]).to_numpy(dtype=float)
-
-        if i>j:
-          p_value=stats.mannwhitneyu(x_vals_i, x_vals_j, alternative="two-sided").pvalue
-          #p_value=0.005
-          p_value=round(p_value,4)
-          pvalues_mat[i,j]=p_value
-        elif i==j:
-          pvalues_mat[i,j]=normality_p_val
+        if stat_test=='Normal':
+          if i>j:
+            p_value=stats.mannwhitneyu(x_vals_i, x_vals_j, alternative="two-sided").pvalue
+            #p_value=0.005
+            p_value=round(p_value,4)
+            pvalues_mat[i,j]=p_value
+          elif i==j:
+            pvalues_mat[i,j]=normality_p_val
+        elif stat_test=='Bootstrap':
+          data = (x_vals_i, x_vals_j)
+          res = bootstrap(data, my_statistic, method='basic', random_state=rng)
+          ci_l=round(res.confidence_interval[0],2)
+          ci_u=round(res.confidence_interval[1],2) #,res.confidence_interval[1]]
+          pvalues_mat[i,j] = '['+ str(ci_l)+', ' + str(ci_u)+']'        
       x_vals.append(x_vals_i)
     
     color = [cell_type_colour_dict[j] for j in selectedcelltype] #["green", "White", "Red", "Yellow", "Green", "Grey"] 
@@ -274,6 +334,9 @@ file[0]["datapath"]
     ax[1].set_xticks(cell_type_tick_mark)
     ax[1].set_xticklabels(selectedcelltype)
     
+
+    pvalues_mat=np.empty((len(selectedcelltype),len(selectedcelltype)),dtype='<U100')
+    
     y_vals=[]
     for i,sel_c_t in enumerate(selectedcelltype):
       # pull data from data frame for given cell type
@@ -286,13 +349,22 @@ file[0]["datapath"]
       for j,sel_c_t_j in enumerate(selectedcelltype):
         y_vals_j=(locdf[input.y()].loc[(locdf['n_experiment'].isin(selected_Exp))&(locdf['cell_type']==selectedcell_type_fudge[sel_c_t_j])]).to_numpy(dtype=float)
 
-        if i>j:
-          p_value=stats.mannwhitneyu(y_vals_i, y_vals_j, alternative="two-sided").pvalue
-          #p_value=0.005
-          p_value=round(p_value,4)
-          pvalues_mat[i,j]=p_value
-        elif i==j:
-          pvalues_mat[i,j]=normality_p_val
+        if stat_test=='Normal':
+          if i>j:
+            p_value=stats.mannwhitneyu(y_vals_i, y_vals_j, alternative="two-sided").pvalue
+            #p_value=0.005
+            p_value=round(p_value,4)
+            pvalues_mat[i,j]=str(p_value)
+          elif i==j:
+            pvalues_mat[i,j]=str(normality_p_val)
+        
+        elif stat_test=='Bootstrap':
+          data = (y_vals_i, y_vals_j)
+          res = bootstrap(data, my_statistic, method='basic', random_state=rng)
+          ci_l=round(res.confidence_interval[0],2)
+          ci_u=round(res.confidence_interval[1],2) #,res.confidence_interval[1]]
+          pvalues_mat[i,j] = '['+ str(ci_l)+', ' + str(ci_u)+']'
+
       y_vals.append(y_vals_i)
     
     color = [cell_type_colour_dict[j] for j in selectedcelltype] #["green", "White", "Red", "Yellow", "Green", "Grey"] 
@@ -302,7 +374,11 @@ file[0]["datapath"]
     #linecolor=
     col_labels = selectedcelltype
     row_labels = selectedcelltype
-    #plotting
+    
+
+  
+
+
     ax[2].table(cellText=pvalues_mat,
                 colWidths=[0.1] * len(x_vals),
                 rowLabels=row_labels,
@@ -315,22 +391,51 @@ file[0]["datapath"]
     ax[2].set_xticklabels(selectedcelltype)
   
     
+
+
     #E5_locdf.drop(columns=E5_locdf.columns[0], axis=1, inplace=True)
     #locdf.drop(columns=['n_experiment','cell_type'], axis=1, inplace=True)
-    locdf.rename(columns=lambda x: x[:6], inplace=True) #this will truncate the column name. Then print the dataframe
-  
+    locdfE5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
+    locdfD5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
 
-    corr_mat=locdf.corr(numeric_only=True,method='spearman')
-    mask = np.triu(np.ones_like(corr_mat)) 
+
+    corr_matE5=locdfE5.corr(numeric_only=True,method='spearman')
+    corr_matD5=locdfD5.corr(numeric_only=True,method='spearman')
+
+    mask = np.triu(np.ones_like(corr_matD5)) 
 
     
-    chart=sns.heatmap(corr_mat, annot=True,annot_kws={'size':6.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
-    ax[3].set_title('Pearson correlation')
+    chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
+    ax[3].set_title('E5 corr. Ant')
     ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
     
     #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
 
     ax[3].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
+
+    chart=sns.heatmap(corr_matD5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[4],cbar=False,yticklabels=True,mask=mask)
+    ax[4].set_title('D5 corr. Ant')
+    ax[4].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
+    
+    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
+
+    ax[4].set_yticklabels(chart.get_xticklabels(),fontsize=4.0) 
+
+    chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
+    ax[3].set_title('E5 corr. Ant')
+    ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
+    
+    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
+
+    ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
+
+    chart=sns.heatmap(corr_matD5-corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[5],cbar=False,yticklabels=True,mask=mask)
+    ax[5].set_title('D5-E5 Ant correlation')
+    ax[5].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
+    
+    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
+
+    ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)       
     
       
 
@@ -338,8 +443,8 @@ app = App(app_ui, server)
 
 
 ## file: SamplePointsMasterFrame.csv
-,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power,kymo_slope
-0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352,5.408163265306124
+,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power,region,caW_seg_l
+0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352,'All',50.0
 
 
 ```
