@@ -468,11 +468,11 @@ file[0]["datapath"]
     row_labels = selectedcelltype
     #plotting
     ax[1].table(cellText=pvalues_mat,
-                colWidths=[0.15] * len(x_vals),
+                colWidths=[0.2] * len(x_vals),
                 rowLabels=row_labels,
                 colLabels=col_labels,
                 loc='upper right')
-    ax[1].set_xlim([np.min(cell_type_tick_mark)-0.75, 3.0*np.max(cell_type_tick_mark)])             
+    ax[1].set_xlim([np.min(cell_type_tick_mark)-0.75, 4.0*np.max(cell_type_tick_mark)])             
 
     ax[1].set_title(input.x())
     ax[1].set_xticks(cell_type_tick_mark)
@@ -524,11 +524,11 @@ file[0]["datapath"]
 
 
     table_obj=ax[2].table(cellText=pvalues_mat,
-                colWidths=[0.15] * len(x_vals),
+                colWidths=[0.2] * len(x_vals),
                 rowLabels=row_labels,
                 colLabels=col_labels,
                 loc='upper right')
-    ax[2].set_xlim([np.min(cell_type_tick_mark)-0.75, 3.0*np.max(cell_type_tick_mark)])             
+    ax[2].set_xlim([np.min(cell_type_tick_mark)-0.75, 4.0*np.max(cell_type_tick_mark)])             
 
     ax[2].set_title(input.y())
     ax[2].set_xticks(cell_type_tick_mark)
