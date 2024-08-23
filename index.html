@@ -183,17 +183,99 @@ title_str=['time_point',
                         'amplitude', 
                       'signal_peaks',
                       'signal_troughs',
-                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','region','caW_seg_l']                     
+                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','caW_seg_l']  
+
+# fields with numeric data
+title_str_num=['time_point',
+                  'som_width',
+                    'som_length',
+                    'som_area',
+                    'som_ecc',
+                    'amplitude', 
+                  'signal_peaks',
+                  'signal_troughs',
+                  'period',
+                  'time_increasing_fl',
+                  'time_decreasing_fl','power','caW_seg_l'] 
+
 selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0,'nn1': 1.0,'nn2': 2.0, 'nn5': 5.0,'nn6': 6.0,'nn7': 7.0,}
 selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 'E5 A'}
 cell_type_colour_dict={'D5 P':'m', 'E5 P':'r','D5 A':'k','E5 A':'b'}
 expn_markerdict={'n1':'x','n2':'o','n3': '+','n4': '*','nn1': 'x','nn2': 'o','nn5': '+','nn6':'*','nn7':'^'}
 
+
+# Define a summary statistic for bootstrapping
 rng = np.random.default_rng()
 def my_statistic(sample1, sample2, axis=-1):
     mean1 = np.mean(sample1, axis=axis)
     mean2 = np.mean(sample2, axis=axis)
     return mean1 - mean2
+
+
+# Group data points together based on inputted information
+def GroupDataPoints(datapoint_grouping_method,locdf,selectedcelltype,selectedn,title_str_num):
+  plot_traj=1
+  if datapoint_grouping_method=='Average within n':
+    plot_traj=0
+
+    df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
+    row_index=0
+    for sel_c_t in selectedcelltype:
+      for n_sel in selectedn:
+        dixt_add={}
+        for col in title_str_num:
+          data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])])).median()
+          if np.isnan(data_point)==False:
+            dixt_add[col]=data_point
+          else:
+            dixt_add[col]=-100.0
+
+        dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
+        dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
+        dixt_add['sample_ind']=float(row_index)
+        
+        new_row = pd.Series(dixt_add)
+        df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
+        row_index=row_index+1
+    
+    #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
+    locdf=df_avn.copy()
+  elif datapoint_grouping_method=='Average within somitoid':
+    plot_traj=0
+
+    # Make a new df - this will contain a series for each somitoif
+    df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
+    row_index=0
+    for sel_c_t in selectedcelltype: # loop over cell type
+      for n_sel in selectedn: # loop over n
+        sampleids=((locdf['sample_ind'].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]))
+        for samp_id in sampleids: # loop over sample id
+          dixt_add={}
+          abort_entry_flag=False
+          
+        
+          for col in title_str_num:
+            data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).median()
+            if type(data_point)==float or int:
+              dixt_add[col]=float(data_point)
+            else:
+              dixt_add[col]=-1000.0
+              abort_entry_flag=True
+
+          dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
+          dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
+          dixt_add['sample_ind']=samp_id
+          
+          # Add new entry to spreadsheet
+          new_row = pd.Series(dixt_add)
+          if abort_entry_flag==False:
+            df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
+    
+    df_avn=df_avn.drop(index=0)
+
+    locdf=df_avn.copy()
+
+  return locdf,plot_traj 
 
 app_ui = ui.page_fluid(
     ui.layout_sidebar(
@@ -251,7 +333,7 @@ def server(input, output, session):
       if file is None:
           return pd.DataFrame()
       return pd.read_csv(  # pyright: ignore[reportUnknownMemberType]
-file[0]["datapath"]
+file[0]["datapath"],index_col=False
       )
     fig, ax = plt.subplots(6,1,figsize=(48,10))
     #ax.set_ylim([-2, 2])
@@ -266,17 +348,7 @@ file[0]["datapath"]
     locdf=df.copy()
     locdf=locdf[title_str]
 
-    title_str_num=['time_point',
-                  'som_width',
-                    'som_length',
-                    'som_area',
-                    'som_ecc',
-                    'amplitude', 
-                  'signal_peaks',
-                  'signal_troughs',
-                  'period',
-                  'time_increasing_fl',
-                  'time_decreasing_fl','power','caW_seg_l']               
+      
 
     period_min=input.period_max()[0]
     period_max=input.period_max()[1]
@@ -296,6 +368,7 @@ file[0]["datapath"]
 
     selectedcelltype=input.selectedcelltype()
     selectedn=input.selectedn()
+    datapoint_grouping_method=input.average_ns()
     #selectedregion=input.region()
     selected_n_items=[]
     for i1 in range(len(selectedn)):
@@ -305,12 +378,6 @@ file[0]["datapath"]
     for i1 in range(len(selectedcelltype)):
       selected_c_items.append(selectedcell_type_fudge[selectedcelltype[i1]])  
     
-
-    locdfE5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['E5 A']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]#&amp;(locdf['caW_seg_l']&lt;caw_seg_max)&amp;(locdf['caW_seg_l']&gt;caw_seg_min)]
-
-    locdfD5=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(['D5 A']))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]#&amp;(locdf['caW_seg_l']&lt;caw_seg_max)&amp;(locdf['caW_seg_l']&gt;caw_seg_min)]
-
-
     
     # Select subset of data based on filter criteria
     locdf=locdf[(locdf["period"]&lt;period_max)&amp;(locdf["period"]&gt;period_min)&amp;(locdf["som_length"]&gt;som_length_min)&amp;(locdf["time_point"]&gt;=t_min)&amp;(locdf["time_point"]&lt;=t_max)&amp;(locdf['n_experiment'].isin(selected_n_items))&amp;(locdf['cell_type'].isin(selected_c_items))&amp;(locdf['power']&gt;power_min)&amp;(locdf['amplitude']&gt;amp_min)&amp;(locdf['amplitude']&lt;amp_max)]#&amp;(locdf['caW_seg_l']&lt;caw_seg_max)&amp;(locdf['caW_seg_l']&gt;caw_seg_min)]
@@ -327,7 +394,12 @@ file[0]["datapath"]
             z_score_data=(data_n_c-np.nanmedian(data_n_c))/stats.median_abs_deviation(data_n_c,nan_policy='omit')
             locdf.loc[locdf['n_experiment']==selectedn_dict_fudge[n_sel],col]=z_score_data 
     
+
+    # Group data points: per somitoid, per n or individual
+    locdf,plot_traj=GroupDataPoints(datapoint_grouping_method,locdf,selectedcelltype,selectedn,title_str_num)
+
     
+    # Analysis of individual variables
     # if average over all ns
     x=locdf[input.x()]
     y=locdf[input.y()]
@@ -335,64 +407,7 @@ file[0]["datapath"]
     n=locdf["n_experiment"]
     sample_ind=locdf["sample_ind"]
 
-    plot_traj=1
 
-    if input.average_ns()=='Average within n':
-      plot_traj=0
-
-      df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
-      row_index=0
-      for sel_c_t in selectedcelltype:
-        for n_sel in selectedn:
-          dixt_add={}
-          for col in title_str_num:
-            data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])])).median()
-            if np.isnan(data_point)==False:
-              dixt_add[col]=data_point
-            #else:
-            #  dixt_add[col]=-100.0
-
-          dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
-          dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
-          dixt_add['sample_ind']=float(row_index)
-          
-          new_row = pd.Series(dixt_add)
-          df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
-          row_index=row_index+1
-      
-      #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
-      locdf=df_avn
-    elif input.average_ns()=='Average within somitoid':
-      plot_traj=0
-
-      df_avn=pd.DataFrame({'sample_ind': -1},index=[-1])
-      row_index=0
-      for sel_c_t in selectedcelltype: # loop over cell type
-        for n_sel in selectedn: # loop over n
-          sampleids=((locdf['sample_ind'].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])]))
-          for samp_id in sampleids: # loop over sample id
-            dixt_add={}
-            
-         
-            for col in title_str_num:
-              data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).median()
-              if np.isnan(data_point)==False:
-                dixt_add[col]=data_point
-              #else:
-              #  dixt_add[col]=-100.0
-
-            dixt_add['cell_type']=selectedcell_type_fudge[sel_c_t]
-            dixt_add['n_experiment']=selectedn_dict_fudge[n_sel]
-            dixt_add['sample_ind']=samp_id
-            
-            # Add new entry to spreadsheet
-            new_row = pd.Series(dixt_add)
-            df_avn=pd.concat([df_avn, new_row.to_frame().T],ignore_index=True)            
-      
-      #df_avn = df_avn.drop(df_avn[df_avn['sample_ind'] == -1].index)
-      locdf=df_avn
-
-    
     exp_count=np.nan*np.ones((len(selectedn),len(selectedcelltype)))
 
     for cell_type_ind,sel_c_t in enumerate(selectedcelltype):
@@ -536,50 +551,55 @@ file[0]["datapath"]
   
     
 
+    title_str_num_test=['amplitude','power']
+
+    ## Correlation analysis on E5 and D5 - choose anterior 
+    locdfE5=locdf[(locdf['cell_type']=='E5 A')]
+    locdfD5=locdf[(locdf['cell_type']=='D5 A')]
+    
+    locdfD5=locdfD5[title_str_num]
+    locdfE5=locdfE5[title_str_num]
 
     #E5_locdf.drop(columns=E5_locdf.columns[0], axis=1, inplace=True)
     #locdf.drop(columns=['n_experiment','cell_type'], axis=1, inplace=True)
     locdfE5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
     locdfD5.rename(columns=lambda x: x[:8], inplace=True) #this will truncate the column name. Then print the dataframe
 
+    
+    locdfE5np=locdfE5.to_numpy(copy=True,dtype=float)
+    locdfE5=pd.DataFrame(locdfE5np,columns=locdfE5.columns)
 
-    corr_matE5=locdfE5.corr(numeric_only=True,method='spearman')
-    corr_matD5=locdfD5.corr(numeric_only=True,method='spearman')
+    locdfD5np=locdfD5.to_numpy(copy=True,dtype=float)
+    locdfD5=pd.DataFrame(locdfD5np,columns=locdfD5.columns)
+    
+
+    corr_matE5=locdfE5.corr(method='spearman')
+    corr_matD5=locdfD5.corr(method='spearman')
 
     mask = np.triu(np.ones_like(corr_matD5)) 
 
-    
+
+ 
+    #ax[1].text(x=0.5, y=0.5, s=(locdfE5).to_string(index=False))
+
+    #corr_matE5=locdfE5.to_numpy()
     chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
     ax[3].set_title('E5 corr. Ant')
     ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
-    
-    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
-
     ax[3].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
-
+    
     chart=sns.heatmap(corr_matD5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[4],cbar=False,yticklabels=True,mask=mask)
     ax[4].set_title('D5 corr. Ant')
     ax[4].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
-    
-    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
-
     ax[4].set_yticklabels(chart.get_xticklabels(),fontsize=4.0) 
 
-    chart=sns.heatmap(corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[3],cbar=False,yticklabels=True,mask=mask)
-    ax[3].set_title('E5 corr. Ant')
-    ax[3].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
-    
-    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
-
-    ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)        
-
+  
     chart=sns.heatmap(corr_matD5-corr_matE5, annot=True,annot_kws={'size':5.25},cmap=sns.diverging_palette(20, 220, n=200),vmin=-1.0,vmax=1.0,ax=ax[5],cbar=False,yticklabels=True,mask=mask)
     ax[5].set_title('D5-E5 Ant correlation')
-    ax[5].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)
+    ax[5].set_xticklabels(chart.get_xticklabels(),rotation=75,fontsize=6.0)  
+    ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0) 
     
-    #ax[3].set_yticks(np.linspace(0,corr_mat.shape[0]))
-
-    ax[5].set_yticklabels(chart.get_xticklabels(),fontsize=4.0)       
+          
     
       
 
