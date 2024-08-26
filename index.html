@@ -433,7 +433,7 @@ file[0]["datapath"],index_col=False
         if datapoint_grouping_method in ['Average within n']:
           x_std=data_n_c[input.x()+'sem']
           y_std=data_n_c[input.x()+'sem']
-          ax[0].errorbar(x_select,y_select,xerr=x_std,yerr=y_std,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
+          ax[0].errorbar(x_select,y_select,xerr=x_std,yerr=y_std,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel],elinewidth=1)
         else:
           ax[0].scatter(x_select,y_select,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
 
