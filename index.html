@@ -224,9 +224,16 @@ def GroupDataPoints(datapoint_grouping_method,locdf,selectedcelltype,selectedn,t
       for n_sel in selectedn:
         dixt_add={}
         for col in title_str_num:
-          data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])])).median()
-          if np.isnan(data_point)==False:
-            dixt_add[col]=data_point
+          
+          data_select_dataframe=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])])).astype(float)
+
+          data_point_med=data_select_dataframe.median()
+          data_point_std=data_select_dataframe.sem()
+        
+          if np.isnan(data_point_med)==False:
+            dixt_add[col]=data_point_med
+            dixt_add[col+'sem']=data_point_std
+
           else:
             dixt_add[col]=-100.0
 
@@ -255,9 +262,13 @@ def GroupDataPoints(datapoint_grouping_method,locdf,selectedcelltype,selectedn,t
           
         
           for col in title_str_num:
-            data_point=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).median()
+            dataframe_to_analyse=((locdf[col].loc[(locdf['n_experiment']==selectedn_dict_fudge[n_sel])&amp;(locdf['cell_type']==selectedcell_type_fudge[sel_c_t])&amp;(locdf['sample_ind']==samp_id)])).astype(float)
+            data_point=dataframe_to_analyse.median()
+            data_point_std_err=dataframe_to_analyse.sem()
             if type(data_point)==float or int:
               dixt_add[col]=float(data_point)
+              new_col_sem=col+'sem'
+              dixt_add[new_col_sem]=float(data_point_std_err)
             else:
               dixt_add[col]=-1000.0
               abort_entry_flag=True
@@ -419,8 +430,12 @@ file[0]["datapath"],index_col=False
         x_select=data_n_c[input.x()]
         y_select=data_n_c[input.y()]
 
-      
-        ax[0].scatter(x_select,y_select,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
+        if datapoint_grouping_method in ['Average within n']:
+          x_std=data_n_c[input.x()+'sem']
+          y_std=data_n_c[input.x()+'sem']
+          ax[0].errorbar(x_select,y_select,xerr=x_std,yerr=y_std,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
+        else:
+          ax[0].scatter(x_select,y_select,color=cell_type_colour_dict[sel_c_t],marker=expn_markerdict[n_sel])
 
         if plot_traj==1:
           for j1 in range(16):
