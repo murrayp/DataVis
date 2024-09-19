@@ -194,15 +194,14 @@ app_ui = ui.page_fluid(
         selected=["0","1","2","3"]
     ),
     ui.input_checkbox(id='smooth',label="smooth",  value=['smooth']),
-    ui.input_checkbox(id='detrend',label="detrend",value=['detrend']),
+    ui.input_checkbox(id='detrend',label="detrend",value=['nodetrend']),
     ui.input_checkbox(id='donorm',label="Normalise",value=['donorm']),
-    ui.input_checkbox(id='difference',label="Difference",value=['donorm']),
+    ui.input_select(id='difference',label="Difference",choices=['none','diff','rel. diff'],selected='none'),
     ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=21.0,value=[5.0,20.0],step=0.1),  
     ui.input_file(id='input_file',label='Input file'),
             ),
         ui.panel_main(ui.output_plot("plot"),),
-    ),
-    
+    ),    
 )
 
 def server(input, output, session):
@@ -224,6 +223,7 @@ file[0]["datapath"],index_col=False
       df_orig = parsed_file()
     
     df=df_orig.copy()
+    df.ffill(inplace=True)
 
     gaussian_smoothing_param=1.5 #input.gauss_sig()
     t_min=input.t_max()[0]*60
@@ -254,16 +254,21 @@ file[0]["datapath"],index_col=False
       for i in range(df_np.shape[1]):
         df_np[:,i]=df_np[:,i]/df_np[0,i]
 
-    if do_detrend:
-        df_np=detrend(df_np,axis=0)
-
-    if do_smoothing:
-        df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
-
-    if difference:
+    
+    
+    if difference=='diff':
       df_np=np.diff(df_np,axis=0)
       time=time[0:len(time)-1]
       df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+    elif difference=='rel. diff':
+      df_np=np.diff(df_np,axis=0)/df_np[0:len(time)-1,:]
+      time=time[0:len(time)-1]
+      df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+
+    if do_smoothing:
+        df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+    if do_detrend:
+        df_np=detrend(df_np,axis=0)
 
     shift_ind=0
     fig,ax=plt.subplots()
@@ -273,20 +278,126 @@ file[0]["datapath"],index_col=False
 
 app = App(app_ui, server)
 
-
 ## file: SamplePointsMasterFrame.csv
-Time (mins),Untreated,DMSO,Monastrol,Washout,pcna_Untreated,pcna_DMSO,pcna_Monastrol,pcna_Washout
+Time (mins),A,B,C,D,E,F,G,H
 0,7.572,8.485,10.094,10.65,8.099,8.107,8.219,7.759
 10,7.572,8.485,10.094,10.65,8.099,8.107,8.219,7.759
 20,7.572,8.485,10.094,10.65,8.099,8.107,8.219,7.759
-30,7.572,8.485,10.094,10.65,8.099,8.107,8.219,7.759
-</code></pre>
+30,7.572,8.485,10.094,10.65,8.099,8.107,8.219,7.759</code></pre>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dataexplore-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: An app for exploring all the data.
 </figcaption>
 </figure>
 </div>
+<pre class="shinylive-python" data-engine="python"><code>#| standalone: true
+#| components: [viewer]
+#| viewerHeight: 2000
+
+from shiny import App, Inputs, Outputs, Session, render, ui
+from shiny import reactive
+
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.signal import detrend
+import scipy.ndimage as nd
+from scipy.integrate import solve_ivp
+
+
+
+app_ui = ui.page_fluid(
+    ui.layout_sidebar(
+        ui.panel_sidebar(
+    
+  
+    ui.input_slider(id='Coupling',label="Coupling",  min=0.0,max=3.0,value=0.01,step=0.005),
+
+    ui.input_slider(id='cell_back_ground',label="cell_back_ground",  min=0.0,max=3.0,value=0.1,step=0.005),
+    ui.input_slider(id='trend_strength',label="trend_strength",  min=0.0,max=0.03,value=0.002,step=0.0005),
+    ui.input_slider(id='osc_amp',label="osc_amp",  min=0.0,max=0.03,value=0.004,step=0.0005),
+    ui.input_select(id='Init_cond',label="Init_cond",choices=['Synced','Random'],selected='Synced'),
+            ),
+        ui.panel_main(ui.output_plot("plot"),),
+    ),
+    
+)
+
+def server(input, output, session):
+    
+  @render.plot
+  def plot():
+    
+    om_i=2*np.pi/4.5
+    A=input.Coupling()
+    N_cells=100
+    a=input.osc_amp()
+    cell_back_ground=input.cell_back_ground()
+    k=input.trend_strength()  
+    init_cond=input.Init_cond()
+
+    def kuramoto(t,y):
+        
+        dydt = np.zeros_like(y)
+
+        for i in range(len(y)):
+
+            coupling_term=np.sum(np.sin(y-y[i]))
+            dydt[i]=om_i+A/N_cells*coupling_term
+        return dydt
+
+    if init_cond=='Synced':
+      y0=np.squeeze(np.zeros((N_cells,1),dtype=float))
+    else:
+      y0=np.squeeze(np.zeros((N_cells,1),dtype=float))
+
+      y0=np.random.uniform(0.0,2*np.pi,len(y0))
+    T=20.0
+
+
+    print(y0)
+    #sol = odeint(pend, y0, t, args=(om_i))
+    sol = solve_ivp(kuramoto, [0, T], y0,dense_output=True,t_eval=np.linspace(0,T,500))
+
+
+    y=sol.y
+    t=sol.t
+
+    gene_exp=a/2.0*(1.0+np.sin(y))+cell_back_ground
+    for i in range(N_cells):
+        gene_exp[i,:]+=t*k
+
+
+    total_sig=np.sum(gene_exp,axis=0)
+
+    fig,ax=plt.subplots(3,1)
+    ax[1].plot(sol.t,gene_exp[0,:], 'b', sol.t,gene_exp[9,:], 'r')
+    ax[1].set_xlabel('$t (h)$')
+    ax[1].set_ylabel('Intensity')
+    ax[1].set_title('Individual oscillators')
+    ax[1].legend(['Osc. 1','Osc. 10'])
+
+    ax[2].plot(sol.t,total_sig, 'b')
+    ax[2].set_ylabel('Intensity')
+    ax[2].set_title('Simulated average over FOV')
+    ax[2].set_xlabel('$t (h)$')
+
+    ax[0].pcolor(gene_exp)
+    ax[0].set_xlabel('$t(h)$')
+    ax[0].set_ylabel('Osc. index')
+    ax[0].set_title('Heat map of all oscillators')
+
+    fig.tight_layout()
+    plt.show()
+
+      
+app = App(app_ui, server)
+
+
+</code></pre>
+<p>An app for exploring all the data. :::</p>
 
 
 </section>
