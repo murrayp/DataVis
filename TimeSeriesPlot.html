@@ -169,6 +169,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import detrend
 import scipy.ndimage as nd
+from scipy.signal import savgol_filter
 
 my_file = Path(__file__).parent / "SamplePointsMasterFrame.csv"
 df_orig = pd.read_csv(my_file)
@@ -193,8 +194,9 @@ app_ui = ui.page_fluid(
         },
         selected=["0","1","2","3"]
     ),
-    ui.input_checkbox(id='smooth',label="smooth",  value=['smooth']),
-    ui.input_checkbox(id='detrend',label="detrend",value=['nodetrend']),
+    ui.input_select(id='smooth',label="smooth",choices=["none","median","uniform","gaussian","savgol"],  selected=['gaussian']),
+    ui.input_slider(id="sm_param",label="Smooth. param",min=0.0,max=8.0,value=1.9,step=0.1),  
+    ui.input_checkbox(id='detrend',label="detrend",value=[]),
     ui.input_checkbox(id='donorm',label="Normalise",value=['donorm']),
     ui.input_select(id='difference',label="Difference",choices=['none','diff','rel. diff'],selected='none'),
     ui.input_slider(id="t_max",label="Samp. time",min=0.0,max=21.0,value=[5.0,20.0],step=0.1),  
@@ -225,7 +227,7 @@ file[0]["datapath"],index_col=False
     df=df_orig.copy()
     df.ffill(inplace=True)
 
-    gaussian_smoothing_param=1.5 #input.gauss_sig()
+    gaussian_smoothing_param=input.sm_param() #input.gauss_sig()
     t_min=input.t_max()[0]*60
     t_max=input.t_max()[1]*60
     do_detrend=input.detrend()
@@ -254,26 +256,40 @@ file[0]["datapath"],index_col=False
       for i in range(df_np.shape[1]):
         df_np[:,i]=df_np[:,i]/df_np[0,i]
 
-    
+    if do_smoothing=="median":
+        #df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+        gaussian_smoothing_param_eff=int(np.ceil(gaussian_smoothing_param))
+        df_np=nd.median_filter(df_np,size=(gaussian_smoothing_param_eff,1))
+    elif do_smoothing=="gaussian":
+        df_np=nd.gaussian_filter(df_np,sigma=(gaussian_smoothing_param,0))
+    elif do_smoothing=="uniform":
+        df_np=nd.uniform_filter(df_np,size=(gaussian_smoothing_param,1))
+    elif do_smoothing=="savgol":
+        gaussian_smoothing_param_eff=int(np.ceil(gaussian_smoothing_param))
+        df_np=savgol_filter(df_np,axis=(0),window_length=gaussian_smoothing_param_eff,polyorder=3)
+        #signal_mean=ndimage.uniform_filter(signal_mean,axes=0,size=5)
     
     if difference=='diff':
       df_np=np.diff(df_np,axis=0)
       time=time[0:len(time)-1]
-      df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+      #df_np=nd.median_filter(df_np,size=gaussian_smoothing_param)
     elif difference=='rel. diff':
       df_np=np.diff(df_np,axis=0)/df_np[0:len(time)-1,:]
       time=time[0:len(time)-1]
-      df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+      #df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+      #df_np=nd.median_filter(df_np,size=gaussian_smoothing_param)
+    assert(df_np.shape[1]==8)
+    
 
-    if do_smoothing:
-        df_np=nd.gaussian_filter1d(df_np,sigma=gaussian_smoothing_param,axis=0)
+    
+
     if do_detrend:
-        df_np=detrend(df_np,axis=0)
+        df_np=detrend(df_np,axes=0)
 
     shift_ind=0
     fig,ax=plt.subplots()
     ax.plot(time,df_np[:,select_cols])
-
+    ax.grid(True)
     ax.legend(leg_str[select_cols])
 
 app = App(app_ui, server)
