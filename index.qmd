@@ -39,7 +39,7 @@ title_str=['time_point',
                         'amplitude', 
                       'signal_peaks',
                       'signal_troughs',
-                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','caW_seg_l']  
+                      'period','sample_ind','cell_type','n_experiment','time_increasing_fl','time_decreasing_fl','power','caW_seg_l','amplitude_j_pyboat','period_j_pyboat']  
 
 # fields with numeric data
 title_str_num=['time_point',
@@ -52,7 +52,7 @@ title_str_num=['time_point',
                   'signal_troughs',
                   'period',
                   'time_increasing_fl',
-                  'time_decreasing_fl','power','caW_seg_l'] 
+                  'time_decreasing_fl','power','caW_seg_l','amplitude_j_pyboat','period_j_pyboat'] 
 
 selectedn_dict_fudge={'n1': 8.0, 'n2': 9.0,'n3': 10.0,'n4': 11.0,'nn1': 1.0,'nn2': 2.0, 'nn5': 5.0,'nn6': 6.0,'nn7': 7.0,}
 selectedcell_type_fudge={'D5 P': 'D5 P', 'E5 P': 'E5 P','D5 A': 'D5 A', 'E5 A': 'E5 A'}
@@ -306,8 +306,8 @@ file[0]["datapath"],index_col=False
                 loc='upper right',
                 colWidths=[0.1] * len(selectedcelltype))
     
-    x_ticks=ax[0].get_xticks()
-    ax[0].set_xlim([x_ticks[0], x_ticks[-1]+(x_ticks[-1]-x_ticks[0])*0.3]) 
+    #x_ticks=ax[0].get_xticks()
+    #ax[0].set_xlim([x_ticks[0], x_ticks[-1]+(x_ticks[-1]-x_ticks[0])*0.3]) 
   
     
     
@@ -478,8 +478,8 @@ app = App(app_ui, server)
 
 
 ## file: SamplePointsMasterFrame.csv
-,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power,region,caW_seg_l
-0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352,'All',50.0
+,time_point,cell_type,n_experiment,som_width,som_length,PSM_length,amplitude,signal_peaks,period,signal_troughs,som_area,som_ecc,rel_amplitude,rel_troughs,rel_peaks,rel_period,sample_ind,time_decreasing_fl,time_increasing_fl,power,region,caW_seg_l,amplitude_j_pyboat,period_j_pyboat
+0,3.6,Wibj2,1.0,187.530109334512,422.6930504725042,,1.973729821555833e-15,7.894919286223334e-16,6.200000000000001,-1.1842378929335002e-15,60692.71499130554,0.8961973949419874,,,,,1.0,0.6000000000000001,5.6000000000000005,0.0869827062231352,'All',50.0,3.0,4.0
 
 
 ```
